@@ -6,16 +6,10 @@ const LINKING_ERROR =
   '- You rebuilt the app after installing the package\n' +
   '- You are not using Expo managed workflow\n';
 
-const SimCardsManagerModule = NativeModules.SimCardsManager
-  ? NativeModules.SimCardsManager
-  : new Proxy(
-      {},
-      {
-        get() {
-          throw new Error(LINKING_ERROR);
-        },
-      }
-    );
+const SimCardsManagerModule = 
+  (Platform.OS === 'android' && Platform.Version >= 28) || Platform.OS === 'ios'
+    ? NativeModules.SimCardsManager
+    : null;
 
 export async function requestCellularNetworkPermission(then: () => any, rationale?: Rationale) {
   if (Platform.OS == 'android') {
@@ -71,8 +65,10 @@ type SimManager = {
   isEsimSupported(): Promise<boolean | never>;
 };
 
-SimCardsManagerModule.getSimCards = async () => {
-  return await requestCellularNetworkPermission(NativeModules.SimCardsManager.getSimCardsNative);
-};
+if (SimCardsManagerModule) {
+  SimCardsManagerModule.getSimCards = async () => {
+    return await requestCellularNetworkPermission(NativeModules.SimCardsManager.getSimCardsNative);
+  };
+}
 
 export default SimCardsManagerModule as SimManager;
